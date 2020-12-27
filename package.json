@@ -23,6 +23,6 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
-    "highcharts": "^8.2.0"
+    "highcharts": "^8.2.2"
   }
 }

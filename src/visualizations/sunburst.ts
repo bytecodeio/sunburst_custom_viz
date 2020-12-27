@@ -80,9 +80,7 @@ const vis: SunburstViz = {
             max_measures: 2
         });
 
-        let measuresName = queryResponse.fields.measure_like[0].name;
-
-        let dimensions = queryResponse.fields.dimension_like.map((field) => {
+        let measures = queryResponse.fields.measure_like.map((field) => {
             let key = field.label;
             let value = field.name;
             return { [key]: value };
@@ -91,41 +89,23 @@ const vis: SunburstViz = {
         // These are the looker viz options. 
         let options = this.options;
 
-        options["category1"] =
+        options["numerator"] =
         {
             section: "Values",
             type: "string",
-            label: "Top category dimension",
+            label: "Numerator Measure",
             display: "select",
-            values: dimensions,
+            values: measures,
             order: 1
         };
-        options["category2"] =
+        options["denominator"] =
         {
             section: "Values",
             type: "string",
-            label: "Second category dimension",
+            label: "Denominator Measure",
             display: "select",
-            values: dimensions,
-            order: 2
-        };
-        options["category3"] =
-        {
-            section: "Values",
-            type: "string",
-            label: "Third category dimension",
-            display: "select",
-            values: dimensions,
-            order: 3
-        };
-        options["category4"] =
-        {
-            section: "Values",
-            type: "string",
-            label: "Fourth category dimension",
-            display: "select",
-            values: dimensions,
-            order: 4
+            values: measures,
+            order: 1
         };
 
         options["minColor"] =
@@ -158,224 +138,60 @@ const vis: SunburstViz = {
 
         this.trigger('registerOptions', options); // register options with parent page to update visConfig
 
-        let category1 = this.options.category1;
-        let category2 = this.options.category2;
+        // element.innerHTML = `Please specify each category. They will be treated hierarchically.
+        //     ${JSON.stringify(config.category1)}`
+        // return
 
-        if (!category1 || !category2) {
-            vis.addError({
-                title: `Please Define Categories`,
-                message: `This visualization requires at least two categories defined in the options.`
-            });
-        }
-        let xCategories: Array<string> = [];
+     
         let seriesData: Array<any> = [];
-        let yCategories: Array<string> = Object.keys(data[0][measuresName]).map(x => getFinalSectionOfPipedString(x));
+        let dimensionNames: Array<string> = queryResponse.fields.dimension_like.map(x => x.name)
+        let dimCount: number = dimensionNames.length
+        let lastDimension: string = dimensionNames[dimCount-1]
 
         data.forEach(function (row, i) {
-            var secondCategoryCell = row[config.secondCategory];
-            var values = Object.values(data[i][measuresName]);
+            var denominator: number = parseInt(row[config.denominator].value);
+            var numerator: number = parseInt(row[config.numerator].value);
+            var percent = denominator === 0 ? 0 : numerator/denominator;
 
-            values.map((x: any, j: number) => {
-                if (config.reverseXY) {
-                    seriesData.push([j, i, rounder(x.value, config.decimalPrecision)]);
-                } else {
-                    seriesData.push([i, j, rounder(x.value, config.decimalPrecision)]);
-                }
-            });
+            let rowId: string = ''
+            dimensionNames.forEach((x,i) => {
+                rowId += row[x].value
+            })
+            let parentId: string = ''
+            dimensionNames.forEach((x,i) => {
+                if(i != dimCount-1) parentId += row[x].value
+            })
 
-            xCategories.push(
-                secondCategoryCell.value
-            );
+            
+            
+            seriesData.push({
+                    id: rowId,
+                    parent: parentId,
+                    name: row[lastDimension].value,
+                    value: denominator,
+                    percent: percent
+                });
+
+            // element.innerHTML = `data1:
+            //     ${JSON.stringify(seriesData)}
+            //     data2:
+            //     ${JSON.stringify(row)}`
+            //     return
+            //     done();
+
         });
 
-        let pivotedSeries: any = {};
-        pivotedSeries.data = seriesData;
-        pivotedSeries.borderWidth = config.internalBorder ? 1 : 0;
-        pivotedSeries.borderColor = 'white';
+        let series: any = {};
+        series.data = seriesData;
+        series.borderWidth = config.internalBorder ? 1 : 0;
+        series.borderColor = 'white';
 
 
         //    These are the Highcharts options (not the looker viz config options)
         chartOptions = baseChartOptions;
 
-        if (config.maxWidth && config.maxWidth > 0) {
-            element.style.width = `${config.maxWidth}px`;
-        }
-        if (config.maxHeight && config.maxHeight > 0) {
-            chartOptions.chart.height = `${config.maxHeight}px`;
-        }
 
-        if (config.reverseXY) {
-            chartOptions.xAxis.categories = yCategories;
-            chartOptions.yAxis.categories = xCategories;
-        } else {
-            chartOptions.xAxis.categories = xCategories;
-            chartOptions.yAxis.categories = yCategories;
-        }
-
-        chartOptions.xAxis.labels.style.fontSize = `${config.xAxisFontSize}px`;
-        chartOptions.yAxis.labels.style.fontSize = `${config.yAxisFontSize}px`;
-
-        chartOptions.legend.symbolHeight = config.maxHeight - 200;
-
-        if (config.xAxisOnTop && config.xAxisRotation) {
-            chartOptions.xAxis.opposite = config.xAxisOnTop;
-            chartOptions.xAxis.labels.rotation = -90;
-            chartOptions.chart.marginTop = 200;
-            chartOptions.chart.marginBottom = 0;
-            chartOptions.chart.height = `${config.maxHeight + 200}px`;
-            chartOptions.legend.y = 182;
-        }
-        else if (config.xAxisRotation) {
-            delete chartOptions.xAxis.opposite;
-            chartOptions.xAxis.labels.rotation = -90;
-            chartOptions.chart.marginTop = 0;
-            chartOptions.chart.marginBottom = 200;
-            chartOptions.chart.height = `${config.maxHeight + 200}px`;
-            chartOptions.legend.y = -10;
-        }
-        else if (config.xAxisOnTop) {
-            chartOptions.xAxis.opposite = config.xAxisOnTop;
-            delete chartOptions.xAxis.labels.rotation;
-            chartOptions.chart.marginTop = 40;
-            chartOptions.chart.marginBottom = 0;
-            chartOptions.chart.height = `${config.maxHeight}px`;
-            chartOptions.legend.y = 25;
-        }
-        else {
-            delete chartOptions.xAxis.labels.rotation;
-            delete chartOptions.xAxis.opposite;
-            chartOptions.chart.marginTop = 0;
-            chartOptions.chart.marginBottom = 40;
-            chartOptions.chart.height = `${config.maxHeight}px`;
-            chartOptions.legend.y = -10;
-        }
-
-        let colorAxis: any = {
-            min: config.minValue || 40,
-            max: config.maxValue || 60,
-            reversed: false
-        };
-        if (config.colorScheme == 'Custom') {
-            colorAxis.stops = [
-                [0, `${config.minColor}` || '#263279'],
-                [0.5, `${config.midColor}` || '#D9DDDE'],
-                [1, `${config.maxColor}` || '#670D23']];
-        }
-        else {
-            const stopsize = 1 / 15;
-            if (config.colorScheme == 'Derek') {
-                colorAxis.stops = [[0, '#3C0912'],
-                [1 * stopsize, '#670D23'],
-                [2 * stopsize, '#931327'],
-                [3 * stopsize, '#B23727'],
-                [4 * stopsize, '#C26245'],
-                [5 * stopsize, '#CF8971'],
-                [6 * stopsize, '#DBB1A3'],
-                [7 * stopsize, '#E8D8D3'],
-                [8 * stopsize, '#D9DDDE'],
-                [9 * stopsize, '#A8C1CB'],
-                [10 * stopsize, '#73A8BD'],
-                [11 * stopsize, '#428EBA'],
-                [12 * stopsize, '#166FBB'],
-                [13 * stopsize, '#1C4BB2'],
-                [14 * stopsize, '#263279'],
-                [1, '#181C43']];
-            }
-            else if (config.colorScheme == 'Roma') {
-                colorAxis.stops = [[0, '#7E1900'],
-                [1 * stopsize, '#924410'],
-                [2 * stopsize, '#A4661E'],
-                [3 * stopsize, '#B48A2C'],
-                [4 * stopsize, '#C5AD40'],
-                [5 * stopsize, '#D9D26A'],
-                [6 * stopsize, '#E5E598'],
-                [7 * stopsize, '#DFECBB'],
-                [8 * stopsize, '#BFEBD2'],
-                [9 * stopsize, '#8CDED9'],
-                [10 * stopsize, '#60C3D4'],
-                [11 * stopsize, '#4CA3C9'],
-                [12 * stopsize, '#3F85BB'],
-                [13 * stopsize, '#3368B0'],
-                [14 * stopsize, '#274DA4'],
-                [1, '#1A3399']];
-            }
-            else if (config.colorScheme == 'Cork') {
-                colorAxis.stops = [[0, '#2C194C'],
-                [1 * stopsize, '#2A3366'],
-                [2 * stopsize, '#2A4E80'],
-                [3 * stopsize, '#3F6C99'],
-                [4 * stopsize, '#658AAD'],
-                [5 * stopsize, '#8CA7C3'],
-                [6 * stopsize, '#B6C6D8'],
-                [7 * stopsize, '#DDE5EB'],
-                [8 * stopsize, '#DFEBE1'],
-                [9 * stopsize, '#BBD8BF'],
-                [10 * stopsize, '#98C39B'],
-                [11 * stopsize, '#73AD79'],
-                [12 * stopsize, '#529754'],
-                [13 * stopsize, '#3F7A33'],
-                [14 * stopsize, '#406119'],
-                [1, '#434C01']];
-            }
-            else if (config.colorScheme == 'Tofino') {
-                colorAxis.stops = [[0, '#DED8FF'],
-                [1 * stopsize, '#B0B8EB'],
-                [2 * stopsize, '#8399D7'],
-                [3 * stopsize, '#5777B9'],
-                [4 * stopsize, '#395790'],
-                [5 * stopsize, '#263B65'],
-                [6 * stopsize, '#19253D'],
-                [7 * stopsize, '#0E141D'],
-                [8 * stopsize, '#0E1B12'],
-                [9 * stopsize, '#183219'],
-                [10 * stopsize, '#244C27'],
-                [11 * stopsize, '#336C38'],
-                [12 * stopsize, '#4A8C4B'],
-                [13 * stopsize, '#76AE66'],
-                [14 * stopsize, '#A9CB80'],
-                [1, '#DAE59A']];
-            }
-            else if (config.colorScheme == 'Berlin') {
-                colorAxis.stops = [[0, '#FFACAC'],
-                [1 * stopsize, '#DA8B84'],
-                [2 * stopsize, '#B86A5B'],
-                [3 * stopsize, '#964A35'],
-                [4 * stopsize, '#722B15'],
-                [5 * stopsize, '#501802'],
-                [6 * stopsize, '#371000'],
-                [7 * stopsize, '#210C01'],
-                [8 * stopsize, '#121214'],
-                [9 * stopsize, '#112632'],
-                [10 * stopsize, '#194155'],
-                [11 * stopsize, '#255F7B'],
-                [12 * stopsize, '#327FA5'],
-                [13 * stopsize, '#4C9DCE'],
-                [14 * stopsize, '#76ABEB'],
-                [1, '#9EB0FF']];
-            }
-            else if (config.colorScheme == 'Vik') {
-                colorAxis.stops = [[0, '#601200'],
-                [1 * stopsize, '#743100'],
-                [2 * stopsize, '#875001'],
-                [3 * stopsize, '#9F711B'],
-                [4 * stopsize, '#B39148'],
-                [5 * stopsize, '#C7AD78'],
-                [6 * stopsize, '#DCCBA7'],
-                [7 * stopsize, '#ECE6D8'],
-                [8 * stopsize, '#D9E6EC'],
-                [9 * stopsize, '#A5C9D9'],
-                [10 * stopsize, '#70A7C3'],
-                [11 * stopsize, '#3985AC'],
-                [12 * stopsize, '#106496'],
-                [13 * stopsize, '#014683'],
-                [14 * stopsize, '#012C72'],
-                [1, '#001260']];
-            }
-        }
-
-        chartOptions.colorAxis = colorAxis;
-
-        chartOptions.series = [pivotedSeries];
+        chartOptions.series = [series];
 
         var vizDiv = document.createElement('div');
         vizDiv.setAttribute('id', 'viz');
