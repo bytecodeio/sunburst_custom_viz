@@ -3,7 +3,8 @@ let path = require('path');
 let webpackConfig = {
     mode: "development",
     entry: {
-        sunburst: './src/visualizations/sunburst.ts'
+        sunburst: './src/visualizations/sunburst.ts',
+        sunburst_min: './src/visualizations/sunburst_min.js',
     },
     output: {
         filename: '[name].js',
