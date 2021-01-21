@@ -37,7 +37,7 @@ chartOptions = {
       states: {
         hover: {
           enabled: false,
-          halo: null,
+          // halo: null,
         },
         select: {
           halo: null,
@@ -167,8 +167,6 @@ const vis: SunburstViz = {
       (x) => x.name
     );
     let dimCount: number = dimensionNames.length;
-    let lastDimension: string = dimensionNames[dimCount - 1];
-    let ancestorsAdded: Array<string> = [];
 
     // Loop through each data point.
     data.forEach(function (row, i) {
@@ -221,6 +219,12 @@ const vis: SunburstViz = {
             seriesData[currentIndex].color = color((newNumerator / newDenominator))
      
           } else if (getsValue) {
+            let events : any = {};
+            if (obscureValue) {
+              events.click = () => false
+              events.select = () => false
+            }
+              
             // Create a new entry
             seriesData.push({
               id: id,
@@ -230,7 +234,11 @@ const vis: SunburstViz = {
               denominator: denominator,
               numerator: numerator,
               percent: Math.floor((numerator / denominator) * 100),
-              color: obscureValue ? 'white' :color((numerator / denominator))
+              color: obscureValue ? 'white' :color((numerator / denominator)),
+              events: {
+                      click: function () {return false}, 
+                      select: () => {return false},
+              }
             });
           }else {
             seriesData.push({
@@ -251,19 +259,49 @@ const vis: SunburstViz = {
       // End data / rows loop
     });
 
-    // element.innerHTML = `data1:
-    //           ${JSON.stringify(seriesData)}
-    //           data2:
-    //           ${JSON.stringify(row)}`;
-    // return;
-    // done();
-
     let series: any = {};
     series.data = seriesData;
     series.borderWidth = config.internalBorder ? 1 : 0;
     series.borderColor = "white";
-    series.allowDrillToNode = true;
+    // series.allowDrillToNode = true;
     series.cursor = "pointer";
+    series.animation = false;
+    series.point = {
+      events: {
+        click(e : Event) {
+          let series = this.series,
+            clickedLevel = this.node.level,
+            currentOptions = series.userOptions.levels;
+    
+          for (let i of currentOptions) {
+            if (clickedLevel !== 0 /*or 1 */ && clickedLevel !== currentOptions.length) {
+              if (i.level === clickedLevel || i.level === clickedLevel + 1 || i.level === clickedLevel - 1) {
+                i.levelSize = {
+                  value: 1
+                }
+              } else {
+                i.levelSize = {
+                  value: 0.2
+                }
+              }
+              i.dataLabels = {
+                  rotationMode: 'parallel',
+                  filter: {
+                    property: 'outerArcLength',
+                    operator: '>',
+                    value: 64
+                  },
+                  enabled: true
+              }
+            }
+          }
+    
+          series.update({
+            levels: currentOptions
+          })
+        }
+      }
+    },
     series.dataLabels = {
       format: "{point.name}",
       filter: {
@@ -276,6 +314,47 @@ const vis: SunburstViz = {
       },
       rotationMode: "parallel",
     };
+    series.levels = [{
+      level: 1,
+      levelSize: {
+        value: 1
+      }, 
+    },
+      {
+        level: 2,
+        colorByPoint: true,
+        levelSize: {
+          value: 1
+        }
+  
+      }, {
+        level: 3,
+        levelSize: {
+          value: 1
+        }
+      }, {
+        level: 4,
+        levelSize: {
+          value: 0.2
+        }
+      }, {
+        level: 5,
+        levelSize: {
+          value: 0.2
+        }
+      }, {
+        level: 6,
+        levelSize: {
+          value: 0.2
+        }
+      }, {
+        level: 7,
+        levelSize: {
+          value: 0.2
+        }
+      }
+    
+  ]
 
     //    These are the Highcharts options (not the looker viz config options)
     chartOptions = baseChartOptions;
@@ -294,13 +373,6 @@ const vis: SunburstViz = {
     done();
   },
 };
-
-function getFinalSectionOfPipedString(input: string): string {
-  let finalString: string = "";
-  let array: Array<string> = input.split("|");
-  finalString = array[array.length - 1];
-  return finalString;
-}
 
 const fetchColor=(percent:number, stop:number, minColor:string, midColor:string , maxColor:string) => {
   if(percent > stop) {
