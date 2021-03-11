@@ -263,45 +263,46 @@ const vis: SunburstViz = {
     series.data = seriesData;
     series.borderWidth = config.internalBorder ? 1 : 0;
     series.borderColor = "white";
-    // series.allowDrillToNode = true;
+    series.allowDrillToNode = true;
     series.cursor = "pointer";
     series.animation = false;
-    series.point = {
-      events: {
-        click(e : Event) {
-          let series = this.series,
-            clickedLevel = this.node.level,
-            currentOptions = series.userOptions.levels;
+    // WORK IN PROGRESS:  add functionality to allow drill to node, and show 'outer' categories tiny.
+    // series.point = {
+    //   events: {
+    //     click(e : Event) {
+    //       let series = this.series,
+    //         clickedLevel = this.node.level,
+    //         currentOptions = series.userOptions.levels;
     
-          for (let i of currentOptions) {
-            if (clickedLevel !== 0 /*or 1 */ && clickedLevel !== currentOptions.length) {
-              if (i.level === clickedLevel || i.level === clickedLevel + 1 || i.level === clickedLevel - 1) {
-                i.levelSize = {
-                  value: 1
-                }
-              } else {
-                i.levelSize = {
-                  value: 0.2
-                }
-              }
-              i.dataLabels = {
-                  rotationMode: 'parallel',
-                  filter: {
-                    property: 'outerArcLength',
-                    operator: '>',
-                    value: 64
-                  },
-                  enabled: true
-              }
-            }
-          }
+    //       for (let i of currentOptions) {
+    //         if (clickedLevel !== 0 /*or 1 */ && clickedLevel !== currentOptions.length) {
+    //           if (i.level === clickedLevel || i.level === clickedLevel + 1 || i.level === clickedLevel +2) {
+    //             i.levelSize = {
+    //               value: 1
+    //             }
+    //           } else {
+    //             i.levelSize = {
+    //               value: 0.1
+    //             }
+    //           }
+    //           i.dataLabels = {
+    //               rotationMode: 'parallel',
+    //               filter: {
+    //                 property: 'outerArcLength',
+    //                 operator: '>',
+    //                 value: 64
+    //               },
+    //               enabled: true
+    //           }
+    //         }
+    //       }
     
-          series.update({
-            levels: currentOptions
-          })
-        }
-      }
-    },
+    //       series.update({
+    //         levels: currentOptions
+    //       })
+    //     }
+    //   }
+    // },
     series.dataLabels = {
       format: "{point.name}",
       filter: {
@@ -335,24 +336,25 @@ const vis: SunburstViz = {
       }, {
         level: 4,
         levelSize: {
-          value: 0.2
+          value: 0.1
         }
       }, {
         level: 5,
         levelSize: {
-          value: 0.2
+          value: 0.1
         }
       }, {
         level: 6,
         levelSize: {
-          value: 0.2
+          value: 0.1
         }
       }, {
         level: 7,
         levelSize: {
-          value: 0.2
+          value: 0.1
         }
       }
+
     
   ]
 

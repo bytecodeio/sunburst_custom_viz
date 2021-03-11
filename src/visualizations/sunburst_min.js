@@ -240,9 +240,9 @@ const vis = {
               percent: Math.floor((numerator / denominator) * 100),
               color: obscureValue ? 'white' :color((numerator / denominator))
             });
-            console.log(config.midColor)
-            console.log(config.maxColor)
-            console.dir(color((numerator / denominator)))
+            // console.log(config.midColor)
+            // console.log(config.maxColor)
+            // console.dir(color((numerator / denominator)))
           }
         });
       }
@@ -260,6 +260,7 @@ const vis = {
     series.data = seriesData;
     series.borderWidth = config.internalBorder ? 1 : 0;
     series.borderColor = "white";
+    series.turboThreshold = 0
     series.allowDrillToNode = true;
     series.cursor = "pointer";
     series.dataLabels = {
